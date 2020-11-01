@@ -1,7 +1,10 @@
 package com.example.active
 
+import android.app.ProgressDialog.show
 import android.os.Bundle
 import android.view.*
+import android.widget.Button
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -27,8 +30,9 @@ class Fragment_Student: Fragment(),InputDialogFragment.Callbacks  {
     }
 
     private var adapter: StudentAdapter? = null
+    private lateinit var noDataTextView: TextView
+    private lateinit var addStuButton: Button
     private lateinit var studentRecyclerView: RecyclerView
-    //private lateinit var clickButton: Button
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
@@ -37,9 +41,7 @@ class Fragment_Student: Fragment(),InputDialogFragment.Callbacks  {
         return when (item.itemId) {
             R.id.newStudent -> {
                 val student = Student()
-                //studentListViewModel.addStudent(Student(UUID.randomUUID(),99,"Hajar",true))
-                //Toast.makeText(context, " add student", Toast.LENGTH_SHORT) .show()
-                // updateView()
+
                 InputDialogFragment().apply{
                     setTargetFragment(this@Fragment_Student,0)
                     show(this@Fragment_Student.requireFragmentManager(),"Input")
@@ -56,14 +58,31 @@ class Fragment_Student: Fragment(),InputDialogFragment.Callbacks  {
         // clickButton = view.findViewById(R.id.click) as Button
         val view = inflater.inflate(R.layout.fragment__list, container, false)
         studentRecyclerView = view.findViewById(R.id.student_recycler_view) as RecyclerView
+        noDataTextView = view.findViewById(R.id.empty_list_textview) as TextView
+        addStuButton = view.findViewById(R.id.addStdBtn) as Button
         studentRecyclerView.layoutManager = LinearLayoutManager(context)
         updateView()
         return view
     }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        addStuButton.setOnClickListener {
+            InputDialogFragment().apply{
+                setTargetFragment(this@Fragment_Student,0)
+                show(this@Fragment_Student.requireFragmentManager(),"Input")
+            }
+        }
+    }
+
     private fun updateView() {
         val students = studentListViewModel.students
         adapter = StudentAdapter(students)
-        studentRecyclerView.adapter = adapter    }
+        studentRecyclerView.adapter = adapter
+
+
+
+    }
 
     private inner class StudentHolder(view: View)
         : RecyclerView.ViewHolder(view) , View.OnClickListener{
@@ -72,8 +91,9 @@ class Fragment_Student: Fragment(),InputDialogFragment.Callbacks  {
         val st_NameTextView: TextView = itemView.findViewById(R.id.student_name)
         val st_NumTextView: TextView = itemView.findViewById(R.id.stud_num)
         val st_passTextView: TextView = itemView.findViewById(R.id.stud_pass)
+        val deleteButton = itemView.findViewById(R.id.delete_btn) as Button
         init {
-            itemView.setOnClickListener(this)
+            deleteButton.setOnClickListener(this)
         }
         fun bind(student:Student ) {
             this.student = student
@@ -82,9 +102,12 @@ class Fragment_Student: Fragment(),InputDialogFragment.Callbacks  {
             st_passTextView.text="Pass:  "+this.student.pass.toString()
         }
 
+
         override fun onClick(p0: View?) {
             Toast.makeText(context, "${student.name}!", Toast.LENGTH_SHORT)
                 .show()
+            onStudentDelete(adapterPosition)
+
         }
     }
 
@@ -102,7 +125,17 @@ class Fragment_Student: Fragment(),InputDialogFragment.Callbacks  {
             holder.apply {
                 holder.bind(student)
             }}
-        override fun getItemCount()=students.size
+        override fun getItemCount(): Int{
+            if (students.isNotEmpty()) {
+                noDataTextView.visibility = View.GONE
+                addStuButton.visibility = View.GONE
+            } else {
+
+                noDataTextView.visibility = View.VISIBLE
+                addStuButton.visibility = View.VISIBLE
+            }
+            return students.size
+        }
 
     }
 
@@ -117,6 +150,13 @@ class Fragment_Student: Fragment(),InputDialogFragment.Callbacks  {
         studentListViewModel.addStudent(student)
         updateView()
     }
+
+    override fun onStudentDelete(position: Int) {
+        studentListViewModel.deleteStudent(position)
+        updateView()
+
+    }
+
 }
 
 
