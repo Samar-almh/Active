@@ -1,13 +1,16 @@
 package com.example.active
 
 import android.app.ProgressDialog.show
+import android.content.ContentValues.TAG
 import android.os.Bundle
+import android.util.Log
 import android.view.*
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -29,14 +32,17 @@ class Fragment_Student: Fragment(),InputDialogFragment.Callbacks  {
         inflater.inflate(R.menu.list_menu, menu)
     }
 
-    private var adapter: StudentAdapter? = null
+    private var adapter: StudentAdapter? = StudentAdapter(emptyList())
     private lateinit var noDataTextView: TextView
     private lateinit var addStuButton: Button
     private lateinit var studentRecyclerView: RecyclerView
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+
+
+   override fun onCreate(savedInstanceState: Bundle?) {
+       super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
     }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.newStudent -> {
@@ -61,12 +67,22 @@ class Fragment_Student: Fragment(),InputDialogFragment.Callbacks  {
         noDataTextView = view.findViewById(R.id.empty_list_textview) as TextView
         addStuButton = view.findViewById(R.id.addStdBtn) as Button
         studentRecyclerView.layoutManager = LinearLayoutManager(context)
-        updateView()
+        studentRecyclerView.adapter = adapter
+        //updateView()
         return view
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        studentListViewModel.studentListLiveData.observe(
+            viewLifecycleOwner,
+            Observer { students ->
+                students?.let {
+                    Log.i(TAG, "Got student ${students.size}")
+                    updateView(students)
+                }
+            })
         addStuButton.setOnClickListener {
             InputDialogFragment().apply{
                 setTargetFragment(this@Fragment_Student,0)
@@ -75,8 +91,8 @@ class Fragment_Student: Fragment(),InputDialogFragment.Callbacks  {
         }
     }
 
-    private fun updateView() {
-        val students = studentListViewModel.students
+
+        private fun updateView(students: List<Student>) {
         adapter = StudentAdapter(students)
         studentRecyclerView.adapter = adapter
 
@@ -106,7 +122,7 @@ class Fragment_Student: Fragment(),InputDialogFragment.Callbacks  {
         override fun onClick(p0: View?) {
             Toast.makeText(context, "${student.name}!", Toast.LENGTH_SHORT)
                 .show()
-            onStudentDelete(adapterPosition)
+            onStudentDelete(student)
 
         }
     }
@@ -148,14 +164,14 @@ class Fragment_Student: Fragment(),InputDialogFragment.Callbacks  {
 
      override fun onStudentAdded(student: Student) {
         studentListViewModel.addStudent(student)
-        updateView()
-    }
-
-    override fun onStudentDelete(position: Int) {
-        studentListViewModel.deleteStudent(position)
-        updateView()
 
     }
+
+    override fun onStudentDelete(student: Student) {
+        studentListViewModel.deleteStudent(student)
+    }
+
+
 
 }
 
